@@ -1,0 +1,61 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: laravel-mysql-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: laravel-mysql
+  template:
+    metadata:
+      labels:
+        app: laravel-mysql
+    spec:
+      initContainers:
+        - name: git-clone
+          image: alpine/git
+          command:
+            - /bin/sh
+            - -c
+            - git clone https://github.com/rinrin71kh/terrainsystem.git /src
+          volumeMounts:
+            - name: laravel-src
+              mountPath: /src
+      containers:
+        - name: laravel-web
+          image: richarvey/nginx-php-fpm:php8.2.0
+          ports:
+            - containerPort: 80   # Expose web
+            - containerPort: 9000 # PHP-FPM port (for Nginx)
+          volumeMounts:
+            - name: laravel-src
+              mountPath: /var/www/html
+          env:
+            - name: DB_HOST
+              value: "127.0.0.1"
+            - name: DB_PORT
+              value: "3306"
+            - name: DB_DATABASE
+              value: "terrainsystem"
+            - name: DB_USERNAME
+              value: "root"
+            - name: DB_PASSWORD
+              value: "Hello@123"
+        - name: mysql-db
+          image: mysql:8.0
+          env:
+            - name: MYSQL_ROOT_PASSWORD
+              value: "Hello@123"
+            - name: MYSQL_DATABASE
+              value: "terrainsystem"
+          ports:
+            - containerPort: 3306
+          volumeMounts:
+            - name: mysql-storage
+              mountPath: /var/lib/mysql
+      volumes:
+        - name: laravel-src
+          emptyDir: {}
+        - name: mysql-storage
+          emptyDir: {}
